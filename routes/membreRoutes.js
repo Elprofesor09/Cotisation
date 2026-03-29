@@ -1,7 +1,7 @@
 // routes/membreRoutes.js
 const express = require('express');
 const router = express.Router();
-const Membre = require('../models/Membre');
+const Membre = require('../models/membre');
 
 // ➕ Ajouter un membre
 router.post('/', async (req, res) => {
