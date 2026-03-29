@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const CotisationExceptionnelle = require('../models/CotisationExceptionnelle');
-const Membre = require('../models/Membre');
 
 // POST - Ajouter une nouvelle cotisation spéciale
 router.post('/', async (req, res) => {
