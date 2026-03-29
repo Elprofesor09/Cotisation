@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Choix de section</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(to bottom right, #2980b9, #6dd5fa);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 40px;
+      text-align: center;
+    }
+
+    .container {
+      display: flex;
+      gap: 30px;
+      justify-content: center;
+      flex-wrap: wrap;
+      width: 100%;
+      max-width: 1200px;
+    }
+
+    .box-link {
+      flex: 1 1 40%;
+      max-width: 500px;
+      text-decoration: none;
+      transition: transform 0.3s ease;
+    }
+
+    .box {
+      background-color: white;
+      color: #2c3e50;
+      border-radius: 20px;
+      padding: 60px 30px;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      transition: transform 0.3s, background-color 0.3s;
+      position: relative;
+    }
+
+    .box:hover {
+      transform: scale(1.05);
+      background-color: #f2f9ff;
+    }
+
+    .box span.emoji {
+      font-size: 3rem;
+      display: block;
+      margin-bottom: 15px;
+    }
+
+    .arrow {
+      font-size: 2.5rem;
+      position: absolute;
+      top: 20px;
+    }
+
+    .left-arrow {
+      left: 20px;
+    }
+
+    .right-arrow {
+      right: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .box {
+        padding: 40px 20px;
+      }
+
+      .box-link {
+        flex: 1 1 100%;
+      }
+    }
+
+    .footer-note {
+      margin-top: 50px;
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎉 Bienvenue dans le système de gestion des cotisations</h1>
+
+  <div class="container">
+    <a class="box-link" href="cotisation.html">
+      <div class="box">
+        <div class="arrow left-arrow">⬅️</div>
+        <span class="emoji">📅</span>
+        Cotisations Mensuelles
+      </div>
+    </a>
+
+    <a class="box-link" href="exceptionnelles.html">
+      <div class="box">
+        <div class="arrow right-arrow">➡️</div>
+        <span class="emoji">🎁</span>
+        Cotisations Exceptionnelles
+      </div>
+    </a>
+  </div>
+
+  <div class="footer-note">
+    ✨ Géré avec soin et style par toi, mon développeur préféré.
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cotisations du Mois</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #2980b9;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 30px auto;
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      text-align: center;
+    }
+
+    .btn {
+      background-color: #2980b9;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      cursor: pointer;
+    }
+
+    .formulaire {
+      display: none;
+      margin-top: 20px;
+    }
+
+    .formulaire input, .formulaire select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 12px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    .form-buttons {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      padding: 12px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+
+    th {
+      background-color: #e3f2fd;
+    }
+
+    .success {
+      display: none;
+      background-color: #d4edda;
+      color: #155724;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1 id="moisTitre">Cotisations du Mois</h1>
+  </header>
+
+  <div class="container">
+    <button class="btn" onclick="afficherFormulaire()">➕ Nouvelle cotisation</button>
+
+    <div class="success" id="messageSucces">✅ Cotisation enregistrée !</div>
+
+    <form id="formCotisation" class="formulaire">
+      <select id="membreSelect" required></select>
+      <input type="number" id="montant" placeholder="Montant payé" required />
+      <input type="date" id="dateDebut" required />
+      <div class="form-buttons">
+        <button type="submit" class="btn">Enregistrer</button>
+        <button type="button" class="btn" onclick="retour()">Retour</button>
+      </div>
+    </form>
+
+    <table id="tableCotisations">
+      <thead>
+        <tr>
+          <th>Membre</th>
+          <th>Montant</th>
+          <th>Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    let idCotisationAModifier = null;
+
+    const moisNoms = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    const urlParams = new URLSearchParams(window.location.search);
+    const moisIndex = parseInt(urlParams.get("month") || new Date().getMonth() + 1); // 1 à 12
+    const annee = new Date().getFullYear();
+
+    document.getElementById("moisTitre").textContent = "Cotisations de " + moisNoms[moisIndex - 1] + " " + annee;
+
+    async function chargerCotisations() {
+      const res = await fetch("/api/cotisations");
+      const data = await res.json();
+      const tbody = document.querySelector("#tableCotisations tbody");
+      tbody.innerHTML = "";
+
+      data.forEach(c => {
+        if (c.type === "mensuelle" && c.mois === moisIndex && c.annee === annee) {
+          const tr = `<tr>
+            <td>${c.membre.prenom} ${c.membre.nom}</td>
+            <td>${c.montant} Fcfa</td>
+            <td>${new Date(c.dateDebut).toLocaleDateString()}</td>
+            <td>
+              <button onclick="remplirFormulaire('${c._id}', '${c.membre._id}', ${c.montant}, '${c.dateDebut}')">Modifier✏️</button>
+              <button onclick="supprimerCotisation('${c._id}')">Supprimer🗑️</button>
+            </td>
+          </tr>`;
+          tbody.insertAdjacentHTML("beforeend", tr);
+        }
+      });
+    }
+
+    function afficherFormulaire() {
+      document.getElementById("formCotisation").style.display = "block";
+      document.getElementById("messageSucces").style.display = "none";
+      chargerListeMembres();
+    }
+
+    function retour() {
+      document.getElementById("formCotisation").style.display = "none";
+      idCotisationAModifier = null;
+    }
+
+    async function chargerListeMembres() {
+      const membres = await fetch("/api/membres").then(r => r.json());
+      const select = document.getElementById("membreSelect");
+      select.innerHTML = "";
+      membres.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m._id;
+        opt.textContent = `${m.prenom} ${m.nom}`;
+        select.appendChild(opt);
+      });
+
+      document.getElementById("dateDebut").value = new Date().toISOString().split("T")[0];
+    }
+
+    function remplirFormulaire(id, membreId, montant, date) {
+      afficherFormulaire();
+      document.getElementById("membreSelect").value = membreId;
+      document.getElementById("montant").value = montant;
+      document.getElementById("dateDebut").value = new Date(date).toISOString().split('T')[0];
+      idCotisationAModifier = id;
+    }
+
+    document.getElementById("formCotisation").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const cotisation = {
+        membre: document.getElementById("membreSelect").value,
+        montant: document.getElementById("montant").value,
+        dateDebut: document.getElementById("dateDebut").value,
+        mois: moisIndex,
+        annee: annee,
+        type: "mensuelle"
+      };
+
+      const method = idCotisationAModifier ? "PUT" : "POST";
+      const url = idCotisationAModifier
+        ? `/api/cotisations/${idCotisationAModifier}`
+        : `/api/cotisations`;
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cotisation)
+      });
+
+      if (res.ok) {
+        e.target.reset();
+        retour();
+        document.getElementById("messageSucces").style.display = "block";
+        chargerCotisations();
+        setTimeout(() => {
+          document.getElementById("messageSucces").style.display = "none";
+        }, 3000);
+      } else {
+        alert("Erreur lors de l'enregistrement.");
+      }
+    });
+
+    async function supprimerCotisation(id) {
+      if (confirm("Voulez-vous supprimer cette cotisation ?")) {
+        const res = await fetch(`/api/cotisations/${id}`, {
+          method: "DELETE"
+        });
+        if (res.ok) {
+          chargerCotisations();
+        } else {
+          alert("Erreur lors de la suppression.");
+        }
+      }
+    }
+
+    chargerCotisations();
+  </script>
+</body>
+</html>

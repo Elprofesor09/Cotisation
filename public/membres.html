@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Liste des Membres</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+    }
+
+    header {
+      background-color: #2980b9;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    nav {
+      background-color: #7997ab;
+      padding: 10px;
+      text-align: center;
+    }
+
+    nav a {
+      color: white;
+      margin: 0 15px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 30px auto;
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .btn-ajouter {
+      background-color: #2980b9;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin-bottom: 20px;
+      cursor: pointer;
+      border-radius: 5px;
+      float: right;
+    }
+
+    .btn-ajouter:hover {
+      background-color: #2c3e50;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 40px;
+      clear: both;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+
+    th {
+      background-color: #eee;
+    }
+
+    .formulaire {
+      display: none;
+      margin-top: 30px;
+    }
+
+    .formulaire input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .form-buttons {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      display: none;
+    }
+
+    .btn {
+      background-color: #2980b9;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background-color: #2c3e50;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Gestion des Membres</h1>
+  </header>
+
+  <nav>
+    <a href="/indee.html">Accueil</a>
+    <a href="/membres.html">Membres</a>
+    <a href="/cotisation.html">Cotisations Mensuelles</a>
+    <a href="/exceptionnelles.html">Cotisations Exceptionnelles</a>
+  </nav>
+
+  <div class="container">
+    <input type="text" id="rechercheNom" placeholder="🔍 Rechercher par nom..." onkeyup="filtrerMembres()" style="margin-bottom: 20px; padding: 10px; width: 100%; border-radius: 6px; border: 1px solid #ccc;">
+    <button class="btn-ajouter" onclick="afficherFormulaire()">➕ Ajouter un membre</button>
+    <button class="btn" onclick="telechargerExcel()">📥 Exporter Excel</button>
+    <h2>Liste des Membres</h2>
+
+    <div class="success" id="messageSucces">✅ Membre ajouté avec succès !</div>
+
+    <form class="formulaire" id="form-ajout-membre">
+      <input type="text" id="nom" placeholder="Nom" required />
+      <input type="text" id="prenom" placeholder="Prénom" required />
+      <input type="text" id="contact" placeholder="Contact" />
+      <input type="email" id="email" placeholder="Email" />
+      <div class="form-buttons">
+        <button type="submit" class="btn">Enregistrer</button>
+        <button type="button" class="btn" onclick="retourListe()">Retour</button>
+      </div>
+    </form>
+
+    <table id="membresTable">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Prénom</th>
+          <th>Contact</th>
+          <th>Email</th>
+          <th>Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    let idMembreEnEdition = null;
+
+    function filtrerMembres() {
+      const recherche = document.getElementById('rechercheNom').value.toLowerCase();
+      const lignes = document.querySelectorAll('#membresTable tbody tr');
+      lignes.forEach(ligne => {
+        const nom = ligne.children[0].textContent.toLowerCase();
+        ligne.style.display = nom.includes(recherche) ? '' : 'none';
+      });
+    }
+
+    function afficherFormulaire() {
+      document.getElementById("form-ajout-membre").style.display = "block";
+      document.getElementById("messageSucces").style.display = "none";
+    }
+
+    function retourListe() {
+      document.getElementById("form-ajout-membre").style.display = "none";
+      idMembreEnEdition = null;
+    }
+
+    async function chargerMembres() {
+      const res = await fetch('/api/membres');
+      const membres = await res.json();
+      const tbody = document.querySelector('#membresTable tbody');
+      tbody.innerHTML = "";
+      membres.forEach(m => {
+        const row = `<tr>
+          <td>${m.nom}</td>
+          <td>${m.prenom}</td>
+          <td>${m.contact || '-'}</td>
+          <td>${m.email || '-'}</td>
+          <td>${new Date(m.dateInscription).toLocaleDateString()}</td>
+          <td>
+            <button onclick="modifierMembre('${m._id}', '${m.nom}', '${m.prenom}', '${m.contact}', '${m.email}')">✏️</button>
+            <button onclick="supprimerMembre('${m._id}')">🗑️</button>
+          </td>
+        </tr>`;
+        tbody.insertAdjacentHTML('beforeend', row);
+      });
+    }
+
+    async function supprimerMembre(id) {
+      if (confirm("Voulez-vous vraiment supprimer ce membre ?")) {
+        const res = await fetch(`/api/membres/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          alert("Membre supprimé avec succès !");
+          chargerMembres();
+        } else {
+          alert("Erreur lors de la suppression.");
+        }
+      }
+    }
+
+    function modifierMembre(id, nom, prenom, contact, email) {
+      idMembreEnEdition = id;
+      document.getElementById('nom').value = nom;
+      document.getElementById('prenom').value = prenom;
+      document.getElementById('contact').value = contact;
+      document.getElementById('email').value = email;
+      afficherFormulaire();
+    }
+
+    document.getElementById('form-ajout-membre').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const membre = {
+        nom: document.getElementById('nom').value,
+        prenom: document.getElementById('prenom').value,
+        contact: document.getElementById('contact').value,
+        email: document.getElementById('email').value
+      };
+
+      const url = idMembreEnEdition ? `/api/membres/${idMembreEnEdition}` : '/api/membres';
+      const method = idMembreEnEdition ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(membre)
+      });
+
+      if (res.ok) {
+        e.target.reset();
+        idMembreEnEdition = null;
+        document.getElementById('form-ajout-membre').style.display = "none";
+        document.getElementById('messageSucces').innerText = method === 'POST'
+          ? "✅ Membre ajouté avec succès !" : "✏️ Membre modifié avec succès !";
+        document.getElementById('messageSucces').style.display = "block";
+        chargerMembres();
+        setTimeout(() => {
+          document.getElementById('messageSucces').style.display = "none";
+        }, 3000);
+      } else {
+        alert("Erreur lors de l'ajout ou modification du membre.");
+      }
+    });
+
+    async function telechargerExcel() {
+      const res = await fetch('/api/membres');
+      const membres = await res.json();
+      const headers = ['Nom', 'Prénom', 'Contact', 'Email', 'Date d\'inscription'];
+      const data = membres.map(m => [
+        m.nom,
+        m.prenom,
+        m.contact || '-',
+        m.email || '-',
+        new Date(m.dateInscription).toLocaleDateString()
+      ]);
+      data.unshift(headers);
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      ws['!cols'] = headers.map(() => ({ wch: 20 }));
+      XLSX.utils.book_append_sheet(wb, ws, "Membres");
+      XLSX.writeFile(wb, "liste_membres.xlsx");
+    }
+
+    chargerMembres();
+  </script>
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Détail Cotisation Spéciale</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      margin: 0;
+    }
+
+    .date {
+      font-weight: bold;
+      color: #555;
+    }
+
+    .info {
+      margin-top: 20px;
+    }
+
+    .info p {
+      font-size: 18px;
+    }
+
+    .membre-section {
+      margin-top: 30px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+
+    th {
+      background-color: #eaf4ff;
+    }
+
+    select, button {
+      padding: 8px 12px;
+      margin-right: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .btn-danger {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: #3498db;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    .back-btn {
+      margin-top: 30px;
+      display: inline-block;
+      text-decoration: none;
+      color: #2980b9;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <h1 id="themeTitre">Thème : </h1>
+      <div class="date" id="dateCotisation"></div>
+    </div>
+
+    <div class="info">
+      <p><strong>Montant :</strong> <span id="montantCotisation"></span> FCFA</p>
+    </div>
+
+    <div class="membre-section">
+      <h3>Membres concernés</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="membresListe"></tbody>
+      </table>
+
+      <h4 style="margin-top: 30px;">Ajouter un membre existant :</h4>
+      <div style="margin-top: 10px;">
+        <select id="membreSelect"></select>
+        <button class="btn-primary" onclick="ajouterMembre()">Ajouter</button>
+      </div>
+    </div>
+
+    <a href="exceptionnelles.html" class="back-btn">← Retour à la liste</a>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const cotisationId = urlParams.get("id");
+
+    async function chargerDetails() {
+      const res = await fetch(`/api/cotisations-exceptionnelles/${cotisationId}`);
+      const data = await res.json();
+
+      document.getElementById("themeTitre").textContent = "Thème : " + data.theme;
+      document.getElementById("montantCotisation").textContent = data.montant;
+      document.getElementById("dateCotisation").textContent = new Date(data.date).toLocaleDateString();
+
+      const tableBody = document.getElementById("membresListe");
+      tableBody.innerHTML = "";
+      data.membresInclus.forEach(m => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${m.prenom} ${m.nom}</td>
+          <td><button class="btn-danger" onclick="supprimerMembre('${m._id}')">🗑️ Supprimer</button></td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    async function chargerMembres() {
+      const res = await fetch("/api/membres");
+      const membres = await res.json();
+      const select = document.getElementById("membreSelect");
+      select.innerHTML = "";
+      membres.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m._id;
+        opt.textContent = `${m.prenom} ${m.nom}`;
+        select.appendChild(opt);
+      });
+    }
+
+    async function ajouterMembre() {
+      const membreId = document.getElementById("membreSelect").value;
+      await fetch(`/api/cotisations-exceptionnelles/${cotisationId}/ajouter-membre`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ membreId })
+      });
+      chargerDetails();
+    }
+
+    async function supprimerMembre(membreId) {
+      await fetch(`/api/cotisations-exceptionnelles/${cotisationId}/supprimer-membre`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ membreId })
+      });
+      chargerDetails();
+    }
+
+    chargerDetails();
+    chargerMembres();
+  </script>
+
+</body>
+</html>

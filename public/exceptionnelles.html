@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cotisations Exceptionnelles</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f2f2f2;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background-color: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h1, h2 {
+      text-align: center;
+      color: #2c3e50;
+    }
+
+    form {
+      margin-bottom: 30px;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #2980b9;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #21618c;
+    }
+
+    .cotisation-card {
+      background-color: #ecf0f1;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .cotisation-card:hover {
+      background-color: #d0dfe6;
+    }
+
+    .card-content {
+      flex: 1;
+      cursor: pointer;
+    }
+
+    .card-actions button {
+      margin-left: 10px;
+      background-color: #e74c3c;
+    }
+
+    .card-actions button.edit {
+      background-color: #27ae60;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 30px;
+      text-decoration: none;
+      color: #2980b9;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Gestion des Cotisations Exceptionnelles</h1>
+
+    <!-- Formulaire d’ajout -->
+    <form id="formCotisationSpeciale">
+      <label for="theme">Thème :</label>
+      <input type="text" id="theme" required>
+
+      <label for="montant">Montant :</label>
+      <input type="number" id="montant" required>
+
+      <label for="date">Date :</label>
+      <input type="date" id="date" required>
+
+      <button type="submit">Enregistrer</button>
+    </form>
+
+    <h2>Liste des cotisations exceptionnelles</h2>
+    <div id="listeCotisations"></div>
+
+    <a href="indee.html" class="back-link">← Retour à l'accueil</a>
+  </div>
+
+  <script>
+    async function chargerCotisations() {
+      const res = await fetch("/api/cotisations-exceptionnelles");
+      const cotisations = await res.json();
+      const container = document.getElementById("listeCotisations");
+      container.innerHTML = "";
+
+      cotisations.forEach(c => {
+        const div = document.createElement("div");
+        div.className = "cotisation-card";
+
+        const infoDiv = document.createElement("div");
+        infoDiv.className = "card-content";
+        infoDiv.textContent = `${c.theme} - ${new Date(c.date).toLocaleDateString()}`;
+        infoDiv.onclick = () => {
+          window.location.href = `cotisation_exceptionnelle_details.html?id=${c._id}`;
+        };
+
+        const actionDiv = document.createElement("div");
+        actionDiv.className = "card-actions";
+
+        const btnEdit = document.createElement("button");
+        btnEdit.textContent = "✏️";
+        btnEdit.className = "edit";
+        btnEdit.onclick = async () => modifierCotisation(c);
+
+        const btnDelete = document.createElement("button");
+        btnDelete.textContent = "🗑️";
+        btnDelete.onclick = async () => supprimerCotisation(c._id);
+
+        actionDiv.appendChild(btnEdit);
+        actionDiv.appendChild(btnDelete);
+
+        div.appendChild(infoDiv);
+        div.appendChild(actionDiv);
+        container.appendChild(div);
+      });
+    }
+
+    async function supprimerCotisation(id) {
+      if (confirm("Confirmer la suppression ?")) {
+        await fetch(`/api/cotisations-exceptionnelles/${id}`, {
+          method: "DELETE"
+        });
+        chargerCotisations();
+      }
+    }
+
+    async function modifierCotisation(c) {
+      const nouveauTheme = prompt("Nouveau thème :", c.theme);
+      if (!nouveauTheme) return;
+
+      const nouveauMontant = prompt("Nouveau montant :", c.montant);
+      if (!nouveauMontant) return;
+
+      const nouvelleDate = prompt("Nouvelle date (YYYY-MM-DD) :", c.date.split('T')[0]);
+      if (!nouvelleDate) return;
+
+      await fetch(`/api/cotisations-exceptionnelles/${c._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          theme: nouveauTheme,
+          montant: nouveauMontant,
+          date: nouvelleDate
+        })
+      });
+
+      chargerCotisations();
+    }
+
+    document.getElementById("formCotisationSpeciale").addEventListener("submit", async e => {
+      e.preventDefault();
+
+      const cotisation = {
+        theme: document.getElementById("theme").value,
+        montant: document.getElementById("montant").value,
+        date: document.getElementById("date").value
+        // Pas de membres inclus ici, on les ajoute après
+      };
+
+      const res = await fetch("/api/cotisations-exceptionnelles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cotisation)
+      });
+
+      if (res.ok) {
+        alert("Cotisation enregistrée !");
+        e.target.reset();
+        chargerCotisations();
+      } else {
+        alert("Erreur lors de l'enregistrement.");
+      }
+    });
+
+    chargerCotisations();
+  </script>
+</body>
+</html>
